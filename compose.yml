@@ -1,0 +1,17 @@
+services:
+  engine:
+    image: "voicevox/voicevox_engine:cpu-ubuntu20.04-latest"
+    environment:
+      VV_CPU_NUM_THREADS: 4
+    volumes:
+      - "./data:/home/user/.local/share/voicevox-engine-dev/"
+  node:
+    image: "node:alpine"
+    depends_on:
+      - engine
+    volumes:
+      - "./:/app"
+    working_dir: "/app"
+    ports:
+      - "50021:3000"
+    command: "yarn start"
