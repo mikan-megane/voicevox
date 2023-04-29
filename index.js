@@ -57,7 +57,7 @@ app.get('/speak', async (req, res) => {
     res.end()
 });
 
-app.get('/crear', (_req, res) => {
+app.get('/clear', (_req, res) => {
     clear_cache()
     res.send('ok')
     res.end()
