@@ -1,6 +1,7 @@
 services:
   engine:
     image: "voicevox/voicevox_engine:cpu-ubuntu20.04-latest"
+    restart: unless-stopped
     environment:
       VV_CPU_NUM_THREADS: 4
     volumes:
@@ -9,6 +10,7 @@ services:
     image: "node:alpine"
     depends_on:
       - engine
+    restart: unless-stopped
     volumes:
       - "./:/app"
     working_dir: "/app"
