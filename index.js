@@ -27,15 +27,17 @@ app.get('/speak', async (req, res) => {
     }
     const md5 = createHash('md5').update(JSON.stringify(req.query)).digest('hex');
     console.debug(req.query)
-    lock.acquire(md5, async () => {
+    lock.acquire(md5, async (done) => {
         console.debug('lock acquired')
         if (fs.existsSync(`./cache/${md5}.mp3`)) {
             console.debug('cache hit')
+            done()
             const mp3 = fs.readFileSync(`./cache/${md5}.mp3`)
             res.set('Content-Type', 'audio/mpeg')
             res.set('Content-Disposition', 'attachment; filename="audio.mp3"')
             res.send(mp3)
             res.end()
+            console.debug('cache hit done')
             return
         }
         const query = await axios.post(API_SERVICE_URL + '/audio_query', null, {
@@ -61,13 +63,16 @@ app.get('/speak', async (req, res) => {
         }).setFile(`./cache/${md5}.wav`);
         
         await encoder.encode()
-
         console.debug('encoded')
+
+        done()
+
         const mp3 = fs.readFileSync(`./cache/${md5}.mp3`)
         res.set('Content-Type', 'audio/mpeg')
         res.set('Content-Disposition', 'attachment; filename="audio.mp3"')
         res.send(mp3)
         res.end()
+        console.debug('done')
     })
 });
 
