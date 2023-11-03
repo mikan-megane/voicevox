@@ -3,8 +3,11 @@ const { default: axios } = require('axios');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { createHash } = require('crypto')
 const fs = require('fs')
+const AsyncLock = require('async-lock');
+const Lame = require("node-lame").Lame;
 
 const app = express();
+const lock = new AsyncLock();
 
 const PORT = 3000;
 const HOST = "0.0.0.0";
@@ -17,18 +20,24 @@ function clear_cache() {
 clear_cache()
 
 app.get('/speak', async (req, res) => {
-    console.debug('start')
-    const md5 = createHash('md5').update(JSON.stringify(req.query)).digest('hex');
-    console.debug('md5')
-    if (fs.existsSync(`./cache/${md5}.wav`)) {
-        const wav = fs.readFileSync(`./cache/${md5}.wav`)
-        res.set('Content-Type', 'audio/wav')
-        res.set('Content-Disposition', 'attachment; filename="audio.wav"')
-        res.send(wav)
+    if(!req.query.text) {
+        res.send('text is required')
         res.end()
         return
     }
-    try {
+    const md5 = createHash('md5').update(JSON.stringify(req.query)).digest('hex');
+    console.debug(req.query)
+    lock.acquire(md5, async () => {
+        console.debug('lock acquired')
+        if (fs.existsSync(`./cache/${md5}.mp3`)) {
+            console.debug('cache hit')
+            const mp3 = fs.readFileSync(`./cache/${md5}.mp3`)
+            res.set('Content-Type', 'audio/mpeg')
+            res.set('Content-Disposition', 'attachment; filename="audio.mp3"')
+            res.send(mp3)
+            res.end()
+            return
+        }
         const query = await axios.post(API_SERVICE_URL + '/audio_query', null, {
             params: {
                 ...req.query,
@@ -44,17 +53,22 @@ app.get('/speak', async (req, res) => {
             responseType: 'arraybuffer'
         })
         console.debug('synthesis')
-        for (const [key, value] of Object.entries(wav.headers)) {
-            res.set(key, value)
-        }
         fs.writeFileSync(`./cache/${md5}.wav`, wav.data)
-        res.set('Content-Disposition', 'attachment; filename="audio.wav"')
-        res.send(wav.data)
+        console.debug('init lame')
+        const encoder = new Lame({
+            output: `./cache/${md5}.mp3`,
+            bitrate: 48,
+        }).setFile(`./cache/${md5}.wav`);
+        
+        await encoder.encode()
 
-    } catch (error) {
-        res.status(500).send(error.response?.data || error.message)
-    }
-    res.end()
+        console.debug('encoded')
+        const mp3 = fs.readFileSync(`./cache/${md5}.mp3`)
+        res.set('Content-Type', 'audio/mpeg')
+        res.set('Content-Disposition', 'attachment; filename="audio.mp3"')
+        res.send(mp3)
+        res.end()
+    })
 });
 
 app.get('/clear', (_req, res) => {
