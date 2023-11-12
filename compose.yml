@@ -1,9 +1,11 @@
 services:
   engine:
-    image: "voicevox/voicevox_engine:cpu-ubuntu20.04-latest__custome"
+    image: "voicevox/voicevox_engine:cpu-ubuntu20.04"
     build: 
       context: voicevox_engine
       target: runtime-env
+      args:
+        - VOICEVOX_CORE_ASSET_PREFIX=voicevox_core-linux-arm64-cpu
     restart: unless-stopped
     environment:
       VV_CPU_NUM_THREADS: 4

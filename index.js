@@ -14,7 +14,9 @@ const HOST = "0.0.0.0";
 const API_SERVICE_URL = "http://engine:50021";
 
 function clear_cache() {
-    fs.rmSync('./cache', { recursive: true })
+    if (fs.existsSync('./cache')) {
+        fs.rmSync('./cache', { recursive: true })
+    }
     fs.mkdirSync('./cache')
 }
 clear_cache()
