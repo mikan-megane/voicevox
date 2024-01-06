@@ -1,6 +1,6 @@
 services:
   engine:
-    image: "voicevox/voicevox_engine:cpu-ubuntu20.04"
+    image: "voicevox/voicevox_engine:cpu-latest"
     build: 
       context: voicevox_engine
       target: runtime-env

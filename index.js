@@ -45,14 +45,14 @@ app.get('/speak', async (req, res) => {
         const query = await axios.post(API_SERVICE_URL + '/audio_query', null, {
             params: {
                 ...req.query,
-                speaker: req.query.speaker || 3
+                style_id: req.query.style_id || req.query.speaker || 3
             }
         })
         console.debug('audio_query')
         const wav = await axios.post(API_SERVICE_URL + '/synthesis', query.data, {
             params: {
                 ...req.query,
-                speaker: req.query.speaker || 3
+                style_id: req.query.style_id || req.query.speaker || 3
             },
             responseType: 'arraybuffer'
         })
