@@ -5,6 +5,7 @@ import { createHash } from 'crypto'
 import fs from 'fs'
 import AsyncLock from 'async-lock'
 import { Lame } from 'node-lame'
+import { JSDOM } from 'jsdom'
 
 const app = express()
 const lock = new AsyncLock()
@@ -18,11 +19,14 @@ function clearCache(): void {
         fs.rmSync('./cache', { recursive: true })
     }
     fs.mkdirSync('./cache')
+    if(!fs.existsSync('./dict.json')) {
+        fs.writeFileSync('./dict.json', '{}')
+    }
 }
 clearCache()
 
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
-app.get('/speak', async (req: express.Request, res: express.Response) => {
+app.get('/speak', async (req: express.Request, res: express.Response): Promise<void> => {
     if (req.query.text === undefined) {
         res.send('text is required')
         res.end()
@@ -43,14 +47,14 @@ app.get('/speak', async (req: express.Request, res: express.Response) => {
             console.debug('cache hit done')
             return
         }
-        const query = await axios.post(API_SERVICE_URL + '/audio_query', null, {
+        const query = await axios.post('http://127.0.0.1:' + PORT + '/audio_query', null, {
             params: {
                 ...req.query,
                 style_id: req.query.style_id ?? req.query.speaker ?? 3
             }
         })
         console.debug('audio_query')
-        const wav: AxiosResponse<NodeJS.ArrayBufferView> = await axios.post(API_SERVICE_URL + '/synthesis', query.data, {
+        const wav: AxiosResponse<NodeJS.ArrayBufferView> = await axios.post('http://127.0.0.1:' + PORT + '/synthesis', query.data, {
             params: {
                 ...req.query,
                 style_id: req.query.style_id ?? req.query.speaker ?? 3
@@ -90,9 +94,57 @@ app.get('/help', (_req, res) => {
     res.end()
 })
 
+
+const engToKana = async (texts: Array<string>): Promise<{ [key: string]: string }> => {
+    const text = texts.join(' ')
+    const res: AxiosResponse<string> = await axios.get('https://www.sljfaq.org/cgi/e2k_ja.cgi', {
+        params: {
+            word: text,
+            t: 'on'
+        },
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+        }
+    })
+    const window = (new JSDOM(res.data)).window
+    const row = window.document.querySelectorAll('#word-table tr')
+    const result: { [key: string]: string } = {}
+    for (const r of row) {
+        const td = r.querySelectorAll('td')
+        if (td.length >= 2) {
+            result[td[0]?.textContent ?? ''] = td[1]?.textContent ?? ''
+        }
+    }
+    return result
+}
+
+const textToKana = async (text: string): Promise<string> => {
+    const words = text.match(/\w{3,}/g)
+    if (words === null) {
+        return text
+    }
+    const kanas = await engToKana(words)
+
+    for (const [end, kana] of Object.entries(kanas)) {
+        text = text.replace(end, kana)
+    }
+    return text
+}
+
 app.use(createProxyMiddleware({
     target: API_SERVICE_URL,
-    changeOrigin: true
+    changeOrigin: true,
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    pathRewrite: async (original):Promise<string> => {
+        const path = decodeURI(original)
+        let text = path.match(/[?&]text=(.+?)(?:&|$)/)?.[1] ?? ''
+        if (text === '') {
+            return path
+        }
+        text = await textToKana(text)
+
+        return encodeURI(path.replace(/([?&]text=).+?(&|$)/, '$1' + text + '$2'))
+    }
 }))
 
 app.listen(PORT, HOST, () => {
