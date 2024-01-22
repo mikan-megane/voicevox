@@ -50,14 +50,14 @@ app.get('/speak', async (req: express.Request, res: express.Response): Promise<v
         const query = await axios.post('http://127.0.0.1:' + PORT + '/audio_query', null, {
             params: {
                 ...req.query,
-                style_id: req.query.style_id ?? req.query.speaker ?? 3
+                speaker: req.query.style_id ?? req.query.speaker ?? 3
             }
         })
         console.debug('audio_query')
         const wav: AxiosResponse<NodeJS.ArrayBufferView> = await axios.post('http://127.0.0.1:' + PORT + '/synthesis', query.data, {
             params: {
                 ...req.query,
-                style_id: req.query.style_id ?? req.query.speaker ?? 3
+                speaker: req.query.style_id ?? req.query.speaker ?? 3
             },
             responseType: 'arraybuffer'
         })
@@ -80,6 +80,7 @@ app.get('/speak', async (req: express.Request, res: express.Response): Promise<v
         res.send(mp3)
         res.end()
         console.debug('done')
+        fs.rmSync(`./cache/${md5}.wav`)
     })
 })
 

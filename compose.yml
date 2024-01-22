@@ -1,20 +1,23 @@
 services:
   engine:
     image: "voicevox/voicevox_engine:cpu-latest"
-    build: 
-      context: voicevox_engine
-      target: runtime-env
-      args:
-        - VOICEVOX_CORE_ASSET_PREFIX=voicevox_core-linux-arm64-cpu
     restart: unless-stopped
     environment:
       VV_CPU_NUM_THREADS: 4
     volumes:
       - "./data:/home/user/.local/share/voicevox-engine-dev/"
+    healthcheck:
+      test: ["CMD", "wget", "--post-data=", "localhost:50021/audio_query?text=test&speaker=3", "-O", "/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   node:
     build: .
     depends_on:
-      - engine
+      engine:
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - "./:/app"
@@ -22,3 +25,9 @@ services:
     ports:
       - "50021:3000"
     command: "yarn start"
+    healthcheck:
+      test: ["CMD", "wget", "localhost:3000/speak?text=test", "-O", "/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
