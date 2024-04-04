@@ -27,7 +27,7 @@
     "nodemon": "^2.0.22"
   },
   "scripts": {
-    "dev": "nodemon --watch '*.ts' index.ts",
+    "dev": "nodemon --watch '*.{ts,html}' index.ts",
     "start": "ts-node index.ts",
     "fix": "eslint --fix index.ts"
   }

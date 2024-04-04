@@ -8,7 +8,7 @@ services:
       - "./data:/home/user/.local/share/voicevox-engine-dev/"
     healthcheck:
       test: ["CMD", "wget", "--post-data=", "localhost:50021/audio_query?text=test&speaker=3", "-O", "/dev/null"]
-      interval: 30s
+      interval: 1m
       timeout: 10s
       retries: 5
       start_period: 30s
@@ -27,7 +27,7 @@ services:
     command: "yarn start"
     healthcheck:
       test: ["CMD", "wget", "localhost:3000/speak?text=test", "-O", "/dev/null"]
-      interval: 30s
+      interval: 1m
       timeout: 10s
       retries: 5
       start_period: 30s

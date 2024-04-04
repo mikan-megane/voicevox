@@ -8,6 +8,7 @@ import { Lame } from 'node-lame'
 import { JSDOM } from 'jsdom'
 
 const app = express()
+app.use(express.urlencoded({extended:true}))
 const lock = new AsyncLock()
 
 const PORT = 3000
@@ -24,6 +25,12 @@ function clearCache(): void {
     }
 }
 clearCache()
+
+app.get('/', (req: express.Request, res: express.Response) => {
+    // vueで作る
+    const html = fs.readFileSync('./index.html', 'utf-8')
+    res.send(html)
+})
 
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
 app.get('/speak', async (req: express.Request, res: express.Response): Promise<void> => {
