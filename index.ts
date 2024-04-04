@@ -8,7 +8,7 @@ import { Lame } from 'node-lame'
 import { JSDOM } from 'jsdom'
 
 const app = express()
-app.use(express.urlencoded({extended:true}))
+app.use(express.urlencoded({ extended: true }))
 const lock = new AsyncLock()
 
 const PORT = 3000
@@ -20,7 +20,7 @@ function clearCache(): void {
         fs.rmSync('./cache', { recursive: true })
     }
     fs.mkdirSync('./cache')
-    if(!fs.existsSync('./dict.json')) {
+    if (!fs.existsSync('./dict.json')) {
         fs.writeFileSync('./dict.json', '{}')
     }
 }
@@ -143,7 +143,7 @@ app.use(createProxyMiddleware({
     target: API_SERVICE_URL,
     changeOrigin: true,
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    pathRewrite: async (original):Promise<string> => {
+    pathRewrite: async (original): Promise<string> => {
         const path = decodeURI(original)
         let text = path.match(/[?&]text=(.+?)(?:&|$)/)?.[1] ?? ''
         if (text === '') {
@@ -157,4 +157,33 @@ app.use(createProxyMiddleware({
 
 app.listen(PORT, HOST, () => {
     console.log(`Starting Proxy at ${HOST}:${PORT}`)
+    // 全てのスタイルを初期化
+    axios.get(API_SERVICE_URL + '/speakers').then(({ data }) => {
+        data.forEach((speaker: {
+            name: string,
+            styles: [{
+                name: string,
+                id: number,
+            }]
+        }) => {
+            speaker.styles.forEach(style => {
+                axios.get(API_SERVICE_URL + '/is_initialized_speaker', {
+                    params: {
+                        speaker: style.id
+                    }
+                }).then(({ data }) => {
+                    if (!data) {
+                        axios.post(API_SERVICE_URL + '/initialize_speaker', null, {
+                            params: {
+                                speaker: style.id,
+                                skip_reinit: true
+                            }
+                        }).then(() => {
+                            console.log(speaker.name + ' ' + style.name + ' initialized')
+                        })
+                    }
+                })
+            })
+        })
+    })
 })

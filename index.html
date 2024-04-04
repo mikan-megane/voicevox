@@ -8,14 +8,23 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="//unpkg.com/alpinejs" defer></script>
     <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+    <script>
+        // Switch to dark mode if user has it set
+        if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            document.documentElement.setAttribute("data-bs-theme", "dark");
+        }
+    </script>
 </head>
 
 <body class="container my-3">
     <div x-data="voicevox">
         <div class="row">
-            <input type="text" x-model="text" class="form-control col" required>
+            <div class="input-group">
+                <input type="text" x-model.lazy="text" class="form-control col" required>
+                <button @click="play()" class="btn btn-primary" :disabled="!now">再生</button>
+            </div>
         </div>
-        <audio x-ref="audio" controls :src="src"></audio>
+        <audio x-ref="audio" controls :src="src" x-on:ended="now = null" class="d-none"></audio>
         <table class="table">
             <thead>
                 <tr>
@@ -30,7 +39,7 @@
                         <td x-text="speaker.model"></td>
                         <td x-text="speaker.style"></td>
                         <td>
-                            <button @click="play(speaker.id)" class="btn btn-primary">再生</button>
+                            <button @click="play(speaker.id)" class="btn btn-sm" :class="{'btn-primary':speaker.id == now,'btn-outline-primary':speaker.id != now}">再生</button>
                         </td>
                     </tr>
                 </template>
@@ -40,10 +49,13 @@
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('voicevox', () => ({
-                speaker: null,
+                now: '3',
                 speakers: [],
                 text: 'テキストを入力してください',
-                src: '',
+                get src() {
+                    if (!this.now) return ''
+                    return `/speak?speaker=${this.now}&text=${this.text}`
+                },
                 async init() {
                     const { data } = await axios.get('/speakers')
                     for (const model of data) {
@@ -55,16 +67,15 @@
                             })
                         }
                     }
-                    this.$nextTick(() => {
-                        this.speaker = "3"
-                    })
                 },
-                play(speaker) {
-                    this.src = `/speak?speaker=${speaker}&text=${this.text}`
+                play(speaker = null) {
+                    if(speaker){
+                        this.now = speaker+""
+                    }
                     this.$nextTick(() => {
                         this.$refs.audio.play()
                     })
-                }
+                },
             }))
         })
     </script>
