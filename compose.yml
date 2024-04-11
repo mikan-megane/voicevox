@@ -8,16 +8,17 @@ services:
       - "./data:/home/user/.local/share/voicevox-engine-dev/"
     healthcheck:
       test: ["CMD", "wget", "--post-data=", "localhost:50021/audio_query?text=test&speaker=3", "-O", "/dev/null"]
-      interval: 1m
+      interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 30s
 
   node:
-    build: .
+    build: Docker/node
     depends_on:
       engine:
         condition: service_healthy
+      client:
+        condition: service_completed_successfully
     restart: unless-stopped
     volumes:
       - "./:/app"
@@ -27,7 +28,13 @@ services:
     command: "yarn start"
     healthcheck:
       test: ["CMD", "wget", "localhost:3000/speak?text=test", "-O", "/dev/null"]
-      interval: 1m
+      interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 30s
+
+  client:
+    build: Docker/client
+    volumes:
+      - "./:/app"
+    working_dir: "/app/client"
+    command: sh ../client_init.sh

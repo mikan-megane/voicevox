@@ -26,7 +26,7 @@ function clearCache(): void {
 }
 clearCache()
 
-app.get('/', (req: express.Request, res: express.Response) => {
+app.get('/simple', (req: express.Request, res: express.Response) => {
     // vueで作る
     const html = fs.readFileSync('./index.html', 'utf-8')
     res.send(html)
@@ -127,37 +127,31 @@ const engToKana = async (texts: Array<string>): Promise<{ [key: string]: string 
 }
 
 const textToKana = async (text: string): Promise<string> => {
-    const words = text.match(/\w{3,}/g)
+    let words: Array<string>|null = text.match(/\w{2,}/g) as Array<string>|null
     if (words === null) {
         return text
     }
+    const blacklist = [
+        'speaker'
+    ]
+    words = words.filter(word => !blacklist.includes(word))
+
+    if (words.length === 0) {
+        return text
+    }
+
     const kanas = await engToKana(words)
 
+    console.debug('convert',kanas);
+    
     for (const [end, kana] of Object.entries(kanas)) {
         text = text.replace(end, kana)
     }
     return text
 }
 
-app.use(createProxyMiddleware({
-    target: API_SERVICE_URL,
-    changeOrigin: true,
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    pathRewrite: async (original): Promise<string> => {
-        const path = decodeURI(original)
-        let text = path.match(/[?&]text=(.+?)(?:&|$)/)?.[1] ?? ''
-        if (text === '') {
-            return path
-        }
-        text = await textToKana(text)
-
-        return encodeURI(path.replace(/([?&]text=).+?(&|$)/, '$1' + text + '$2'))
-    }
-}))
-
-app.listen(PORT, HOST, () => {
-    console.log(`Starting Proxy at ${HOST}:${PORT}`)
-    // 全てのスタイルを初期化
+// 全てのスタイルを初期化
+const allInit = () => {
     axios.get(API_SERVICE_URL + '/speakers').then(({ data }) => {
         data.forEach((speaker: {
             name: string,
@@ -186,4 +180,27 @@ app.listen(PORT, HOST, () => {
             })
         })
     })
+}
+
+app.use('/', express.static('client/dist'))
+
+app.use(createProxyMiddleware({
+    target: API_SERVICE_URL,
+    changeOrigin: true,
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    pathRewrite: async (original): Promise<string> => {
+        const path = decodeURI(original)
+        let text = path.match(/[?&]text=(.+?)(?:&|$)/)?.[1] ?? ''
+        if (text === '') {
+            return path
+        }
+        text = await textToKana(text)
+
+        return encodeURI(path.replace(/([?&]text=).+?(&|$)/, '$1' + text + '$2'))
+    }
+}))
+
+app.listen(PORT, HOST, () => {
+    console.log(`Starting Proxy at ${HOST}:${PORT}`)
+    // allInit()
 })
