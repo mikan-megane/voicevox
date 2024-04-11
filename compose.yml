@@ -7,7 +7,7 @@ services:
     volumes:
       - "./data:/home/user/.local/share/voicevox-engine-dev/"
     healthcheck:
-      test: ["CMD", "wget", "--post-data=", "localhost:50021/audio_query?text=test&speaker=3", "-O", "/dev/null"]
+      test: ["CMD", "wget", "--post-data=", "127.0.0.1:50021/audio_query?text=test&speaker=3", "-O", "/dev/null"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -27,7 +27,7 @@ services:
       - "50021:3000"
     command: "yarn start"
     healthcheck:
-      test: ["CMD", "wget", "localhost:3000/speak?text=test", "-O", "/dev/null"]
+      test: ["CMD", "wget", "127.0.0.1:3000/speak?text=test", "-O", "/dev/null"]
       interval: 30s
       timeout: 10s
       retries: 10

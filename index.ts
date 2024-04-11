@@ -15,14 +15,16 @@ const PORT = 3000
 const HOST = '0.0.0.0'
 const API_SERVICE_URL = 'http://engine:50021'
 
+if (!fs.existsSync('./dict.json')) {
+    fs.writeFileSync('./dict.json', '{}')
+}
+let cache: { [key: string]: string } = JSON.parse(fs.readFileSync('./dict.json', 'utf-8'))
+
 function clearCache(): void {
     if (fs.existsSync('./cache')) {
         fs.rmSync('./cache', { recursive: true })
     }
     fs.mkdirSync('./cache')
-    if (!fs.existsSync('./dict.json')) {
-        fs.writeFileSync('./dict.json', '{}')
-    }
 }
 clearCache()
 
@@ -127,7 +129,7 @@ const engToKana = async (texts: Array<string>): Promise<{ [key: string]: string 
 }
 
 const textToKana = async (text: string): Promise<string> => {
-    let words: Array<string>|null = text.match(/\w{2,}/g) as Array<string>|null
+    let words: Array<string> | null = text.match(/\w{2,}/g) as Array<string> | null
     if (words === null) {
         return text
     }
@@ -136,17 +138,27 @@ const textToKana = async (text: string): Promise<string> => {
     ]
     words = words.filter(word => !blacklist.includes(word))
 
+    for (const word of words) {
+        if (word in cache) {
+            words = words.filter(w => w !== word)
+            text = text.replace(word, cache[word])
+        }
+    }
+
     if (words.length === 0) {
+        console.log('convert cache only')
         return text
     }
 
     const kanas = await engToKana(words)
 
-    console.debug('convert',kanas);
-    
-    for (const [end, kana] of Object.entries(kanas)) {
-        text = text.replace(end, kana)
+    console.debug('convert', kanas);
+
+    for (const [eng, kana] of Object.entries(kanas)) {
+        cache[eng] = kana
+        text = text.replace(eng, kana)
     }
+    fs.writeFileSync('./dict.json', JSON.stringify(cache, null, 2))
     return text
 }
 
