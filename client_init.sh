@@ -8,7 +8,8 @@ if [ $LAST != $NOW ]; then
   git checkout refs/tags/$LAST
   chmod 777 -R /root
   npm install
-  npm run browser:build
+  npm run browser:build -- --emptyOutDir
 else
   echo "No update found"
 fi
+npm run browser:serve -- --host --base /client/

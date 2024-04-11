@@ -28,7 +28,7 @@ function clearCache(): void {
 }
 clearCache()
 
-app.get('/simple', (req: express.Request, res: express.Response) => {
+app.get('/', (req: express.Request, res: express.Response) => {
     // vueで作る
     const html = fs.readFileSync('./index.html', 'utf-8')
     res.send(html)
@@ -194,7 +194,55 @@ const allInit = () => {
     })
 }
 
+const cacheMiddleware = () => {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        if (req.method !== "GET") return next();
+
+        let key = '__proxy_cache__' + req.originalUrl || req.url
+        key = key.replaceAll('/', '_')
+
+        if (fs.existsSync(`./cache/${key}`)) {
+            const body = fs.readFileSync(`./cache/${key}`)
+            if (body.length) {
+                res.set(JSON.parse(fs.readFileSync(`./cache/${key}.header`, 'utf-8')))
+                res.send(body)
+            } else {
+                return next()
+            }
+        } else {
+            var _end = res.end;
+            var _write = res.write;
+            var buffer = Buffer.alloc(0);
+            // Rewrite response method and get the content.
+            res.write = function (data): any {
+                buffer = Buffer.concat([buffer, data]);
+            };
+            res.end = function (): any {
+                var body = buffer.toString();
+                const headers = res.getHeaders()
+                fs.writeFileSync(`./cache/${key}`, body)
+                fs.writeFileSync(`./cache/${key}.header`, JSON.stringify(headers))
+                // @ts-ignore
+                _write.call(res, body);
+                // @ts-ignore
+                _end.call(res);
+            };
+            next()
+        }
+    }
+}
+
 app.use('/', express.static('client/dist'))
+app.use('/client/', cacheMiddleware(), createProxyMiddleware({
+    target: 'http://client:5173',
+}))
+
+app.use([
+    '/singer_info',
+    '/speaker_info'
+], cacheMiddleware(), createProxyMiddleware({
+    target: API_SERVICE_URL
+}))
 
 app.use(createProxyMiddleware({
     target: API_SERVICE_URL,

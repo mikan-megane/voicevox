@@ -1,6 +1,3 @@
-FROM node:18.13.0
-
-RUN apt-get update && apt-get install -y \
-    jq \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+FROM node:18.13.0-alpine
+RUN apk add --no-cache git curl jq
+RUN git config --global --add safe.directory /app/client
