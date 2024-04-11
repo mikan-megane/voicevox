@@ -186,7 +186,6 @@ app.use('/', express.static('client/dist'))
 
 app.use(createProxyMiddleware({
     target: API_SERVICE_URL,
-    changeOrigin: true,
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     pathRewrite: async (original): Promise<string> => {
         const path = decodeURI(original)
