@@ -34,7 +34,9 @@
                                     <template x-for="(sample,key) in style.voice_samples" :key="key">
                                         <div x-data class="ms-1">
                                             <audio x-ref="audio" :src="sample"></audio>
-                                            <button type="button" id="playButton" class="btn btn-primary rounded-circle btn-sm" @click="$refs.audio.play()">
+                                            <button type="button" id="playButton"
+                                                class="btn btn-primary rounded-circle btn-sm"
+                                                @click="$refs.audio.play()">
                                                 <i id="playIcon" class="bi bi-play-fill"></i>
                                             </button>
                                         </div>
@@ -63,14 +65,19 @@
                 },
                 async init() {
                     const { data: speakers } = await axios.get('/speakers')
-                    for (const {name,styles,speaker_uuid} of speakers) {
-                        axios.get('/speaker_info',{
+                    for (const { name, styles, speaker_uuid } of speakers) {
+                        this.models.push({
+                            name,
+                            styles
+                        })
+                        axios.get('/speaker_info', {
                             params: {
                                 speaker_uuid,
                                 resource_format: 'url',
                             }
-                        }).then(({data: info}) => {
-                            this.models.push({
+                        }).then(({ data: info }) => {
+                            const index = this.models.findIndex(m => m.name === name)
+                            this.models.splice(index, 1, {
                                 name,
                                 styles: info.style_infos.map(info => {
                                     info.name = styles.find(s => s.id === info.id).name
