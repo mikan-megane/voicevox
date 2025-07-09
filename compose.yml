@@ -5,20 +5,22 @@ services:
     environment:
       VV_CPU_NUM_THREADS: 4
     volumes:
-      - "./data:/home/user/.local/share/voicevox-engine-dev/"
-    healthcheck:
-      test: ["CMD", "wget", "--post-data=", "127.0.0.1:50021/audio_query?text=test&speaker=3", "-O", "/dev/null"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
+      - "./data:/home/user/.local/share/voicevox-engine/"
+      - "./data-nemo:/home/user/.local/share/voicevox-nemo-engine"
+      # - "./data/presets.yaml:/opt/voicevox_engine/presets.yaml"
+    # healthcheck:
+    #   test: [ "CMD", "wget", "--post-data=", "127.0.0.1:50021/audio_query?text=test&speaker=3", "-O", "/dev/null" ]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 10
 
   node:
     build: Docker/node
+    image: ghcr.io/mikan-megane/voicevox-node
     depends_on:
-      engine:
-        condition: service_healthy
-      client:
-        condition: service_started
+      - engine
+      # engine:
+      #   condition: service_healthy
     restart: unless-stopped
     volumes:
       - "./:/app"
@@ -27,14 +29,7 @@ services:
       - "50021:3000"
     command: "yarn start"
     healthcheck:
-      test: ["CMD", "wget", "127.0.0.1:3000/speak?text=test", "-O", "/dev/null"]
+      test: [ "CMD", "curl", "-f", "127.0.0.1:3000/speak?text=test" ]
       interval: 30s
       timeout: 10s
       retries: 10
-
-  client:
-    build: Docker/client
-    volumes:
-      - "./:/app"
-    working_dir: "/app/client"
-    command: sh ../client_init.sh

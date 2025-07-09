@@ -24,8 +24,8 @@
                 <button @click="play()" class="btn btn-primary" :disabled="!now">再生</button>
             </div>
         </div>
-        <audio x-ref="audio" controls :src="src" x-on:ended="now = null" class="d-none"></audio>
-        <a href="/client/" class="btn btn-primary mt-1">フルGUI</a>
+        <audio x-ref="audio" controls :src="src" class="d-none"></audio>
+        <a href="https://voicevox.loupe.page" class="btn btn-primary mt-1">フルGUI</a>
         <table class="table">
             <thead>
                 <tr>
@@ -40,7 +40,8 @@
                         <td x-text="speaker.model"></td>
                         <td x-text="speaker.style"></td>
                         <td>
-                            <button @click="play(speaker.id)" class="btn btn-sm" :class="{'btn-primary':speaker.id == now,'btn-outline-primary':speaker.id != now}">再生</button>
+                            <button @click="play(speaker.id)" class="btn btn-sm"
+                                :class="{'btn-primary':speaker.id == now,'btn-outline-primary':speaker.id != now}">再生</button>
                         </td>
                     </tr>
                 </template>
@@ -70,8 +71,8 @@
                     }
                 },
                 play(speaker = null) {
-                    if(speaker){
-                        this.now = speaker+""
+                    if (speaker) {
+                        this.now = speaker + ""
                     }
                     this.$nextTick(() => {
                         this.$refs.audio.play()

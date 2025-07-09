@@ -233,30 +233,31 @@ const cacheMiddleware = () => {
 }
 
 app.use('/', express.static('client/dist'))
-app.use('/client/', cacheMiddleware(), createProxyMiddleware({
-    target: 'http://client:5173',
-}))
+// app.use('/client/', createProxyMiddleware({
+//     target: 'http://client:5173',
+//     ws: true,
+// }))
 
 app.use([
     '/singer_info',
     '/speaker_info'
-], cacheMiddleware(), createProxyMiddleware({
+], createProxyMiddleware({
     target: API_SERVICE_URL
 }))
 
 app.use(createProxyMiddleware({
     target: API_SERVICE_URL,
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    pathRewrite: async (original): Promise<string> => {
-        const path = decodeURI(original)
-        let text = path.match(/[?&]text=(.+?)(?:&|$)/)?.[1] ?? ''
-        if (text === '') {
-            return path
-        }
-        text = await textToKana(text)
+    // pathRewrite: async (original): Promise<string> => {
+    //     const path = decodeURI(original)
+    //     let text = path.match(/[?&]text=(.+?)(?:&|$)/)?.[1] ?? ''
+    //     if (text === '') {
+    //         return path
+    //     }
+    //     text = await textToKana(text)
 
-        return encodeURI(path.replace(/([?&]text=).+?(&|$)/, '$1' + text + '$2'))
-    }
+    //     return encodeURI(path.replace(/([?&]text=).+?(&|$)/, '$1' + text + '$2'))
+    // }
 }))
 
 app.listen(PORT, HOST, () => {
