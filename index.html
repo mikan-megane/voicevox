@@ -88,10 +88,8 @@
                         })
                     }
                 },
-                play(speaker = null) {
-                    if (speaker) {
-                        this.now = speaker + ""
-                    }
+                play(speaker) {
+                    this.now = speaker + ""
                     this.$nextTick(() => {
                         this.$refs.audio.play()
                     })
