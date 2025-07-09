@@ -29,8 +29,9 @@
                         <div class="d-flex">
                             <img :src="style.icon" style="width: 100px;" class="img-fluid rounded-start" loading="lazy">
                             <div class="card-body">
-                                <div class="d-flex">
-                                    <h5 class="card-title" x-text="style.name"></h5>
+                                <div class="d-flex align-items-end">
+                                    <h5 class="card-title mb-0 me-1" x-text="style.name"></h5>
+                                    <small class="me-1" x-text="'id:'+style.id"></small>
                                     <template x-for="(sample,key) in style.voice_samples" :key="key">
                                         <div x-data class="ms-1">
                                             <audio x-ref="audio" :src="sample"></audio>
