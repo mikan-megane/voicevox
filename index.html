@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="//unpkg.com/alpinejs" defer></script>
     <script src="https://unpkg.com/axios@1.6.7/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script>
         // Switch to dark mode if user has it set
         if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
@@ -18,56 +19,65 @@
 
 <body class="container my-3">
     <div x-data="voicevox">
-        <div class="row">
-            <div class="input-group">
-                <input type="text" x-model.lazy="text" class="form-control col" required>
-                <button @click="play()" class="btn btn-primary" :disabled="!now">再生</button>
-            </div>
-        </div>
         <audio x-ref="audio" controls :src="src" class="d-none"></audio>
         <a href="https://voicevox.loupe.page" class="btn btn-primary mt-1">フルGUI</a>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>名前</th>
-                    <th>スタイル</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <template x-for="speaker in speakers" :key="speaker.id">
-                    <tr>
-                        <td x-text="speaker.model"></td>
-                        <td x-text="speaker.style"></td>
-                        <td>
-                            <button @click="play(speaker.id)" class="btn btn-sm"
-                                :class="{'btn-primary':speaker.id == now,'btn-outline-primary':speaker.id != now}">再生</button>
-                        </td>
-                    </tr>
+        <template x-for="model in models" :key="model.name">
+            <div class="mt-3">
+                <h5 class="card-title" x-text="model.name"></h5>
+                <template x-for="style in model.styles" :key="style.id">
+                    <div class="card mb-1">
+                        <div class="d-flex">
+                            <img :src="style.icon" style="width: 100px;" class="img-fluid rounded-start" loading="lazy">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <h5 class="card-title" x-text="style.name"></h5>
+                                    <template x-for="(sample,key) in style.voice_samples" :key="key">
+                                        <div x-data class="ms-1">
+                                            <audio x-ref="audio" :src="sample"></audio>
+                                            <button type="button" id="playButton" class="btn btn-primary rounded-circle btn-sm" @click="$refs.audio.play()">
+                                                <i id="playIcon" class="bi bi-play-fill"></i>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div class="input-group">
+                                    <input type="text" x-model.lazy="text" class="form-control col" required>
+                                    <button @click="play(style.id)" class="btn btn-primary">再生</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </template>
-            </tbody>
-        </table>
+            </div>
+        </template>
     </div>
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('voicevox', () => ({
                 now: '3',
-                speakers: [],
+                models: [],
                 text: 'テキストを入力してください',
                 get src() {
                     if (!this.now) return ''
                     return `/speak?speaker=${this.now}&text=${this.text}`
                 },
                 async init() {
-                    const { data } = await axios.get('/speakers')
-                    for (const model of data) {
-                        for (const style of model.styles) {
-                            this.speakers.push({
-                                model: `${model.name}`,
-                                style: `${style.name}`,
-                                id: `${style.id}`
+                    const { data: speakers } = await axios.get('/speakers')
+                    for (const {name,styles,speaker_uuid} of speakers) {
+                        axios.get('/speaker_info',{
+                            params: {
+                                speaker_uuid,
+                                resource_format: 'url',
+                            }
+                        }).then(({data: info}) => {
+                            this.models.push({
+                                name,
+                                styles: info.style_infos.map(info => {
+                                    info.name = styles.find(s => s.id === info.id).name
+                                    return info
+                                })
                             })
-                        }
+                        })
                     }
                 },
                 play(speaker = null) {
