@@ -1,6 +1,6 @@
 import express from 'express'
 import axios, { AxiosResponse } from 'axios'
-import { createProxyMiddleware } from 'http-proxy-middleware'
+import { createProxyMiddleware, responseInterceptor } from 'http-proxy-middleware'
 import { createHash } from 'crypto'
 import fs from 'fs'
 import AsyncLock from 'async-lock'
@@ -232,21 +232,22 @@ const cacheMiddleware = () => {
     }
 }
 
-app.use('/', express.static('client/dist'))
+// app.use('/', express.static('client/dist'))
 // app.use('/client/', createProxyMiddleware({
 //     target: 'http://client:5173',
 //     ws: true,
 // }))
 
-app.use([
-    '/singer_info',
-    '/speaker_info'
-], createProxyMiddleware({
-    target: API_SERVICE_URL
-}))
-
 app.use(createProxyMiddleware({
     target: API_SERVICE_URL,
+    selfHandleResponse: true,
+    onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+      if (proxyRes.headers['content-type'] === 'application/json') {
+        const response = responseBuffer.toString('utf8'); // convert buffer to string
+        return response.replaceAll('http://', 'https://'); // manipulate response and return the result
+      }
+      return responseBuffer
+    }),
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     // pathRewrite: async (original): Promise<string> => {
     //     const path = decodeURI(original)
